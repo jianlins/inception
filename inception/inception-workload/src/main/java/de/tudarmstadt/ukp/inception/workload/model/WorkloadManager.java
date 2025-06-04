@@ -60,7 +60,7 @@ public class WorkloadManager
     @OnDelete(action = CASCADE)
     private Project project;
 
-    @Column(columnDefinition = "VARCHAR(255)")
+    @Column(name = "workloadType", length = 255)
     private String workloadType;
 
     @Column(length = 64000)
