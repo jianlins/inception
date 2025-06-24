@@ -23,9 +23,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -36,13 +36,14 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.uima.fit.factory.JCasBuilder;
 import org.apache.uima.fit.factory.JCasFactory;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,9 +54,10 @@ import org.springframework.boot.autoconfigure.liquibase.LiquibaseAutoConfigurati
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.FileSystemUtils;
 
 import de.tudarmstadt.ukp.clarin.webanno.api.casstorage.session.CasStorageSession;
 import de.tudarmstadt.ukp.clarin.webanno.conll.config.ConllFormatsAutoConfiguration;
@@ -89,7 +91,7 @@ import de.tudarmstadt.ukp.inception.scheduling.config.SchedulingServiceAutoConfi
 import de.tudarmstadt.ukp.inception.schema.config.AnnotationSchemaServiceAutoConfiguration;
 import de.tudarmstadt.ukp.inception.search.LayerStatistics;
 import de.tudarmstadt.ukp.inception.search.SearchResult;
-import de.tudarmstadt.ukp.inception.search.SearchService;
+import de.tudarmstadt.ukp.inception.search.SearchServiceImpl;
 import de.tudarmstadt.ukp.inception.search.StatisticsResult;
 import de.tudarmstadt.ukp.inception.search.config.SearchServiceAutoConfiguration;
 import de.tudarmstadt.ukp.inception.search.index.mtas.config.MtasDocumentIndexAutoConfiguration;
@@ -108,7 +110,6 @@ import de.tudarmstadt.ukp.inception.support.spring.ApplicationContextProvider;
         showSql = false, //
         properties = { //
                 "spring.main.banner-mode=off", //
-                "repository.path=" + MtasDocumentIndexTest.TEST_OUTPUT_FOLDER, //
                 "debug.cas-doctor.force-release-behavior=true", //
                 "document-import.run-cas-doctor-on-import=OFF" })
 // REC: Not particularly clear why Propagation.NEVER is required, but if it is not there, the test
@@ -132,27 +133,29 @@ import de.tudarmstadt.ukp.inception.support.spring.ApplicationContextProvider;
         SchedulingServiceAutoConfiguration.class, //
         MtasDocumentIndexAutoConfiguration.class, //
         KnowledgeBaseServiceAutoConfiguration.class })
-public class MtasDocumentIndexTest
+class MtasDocumentIndexTest
 {
-    static final String TEST_OUTPUT_FOLDER = "target/test-output/MtasDocumentIndexTest";
 
     private static final Logger LOG = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     private @Autowired UserDao userRepository;
     private @Autowired ProjectService projectService;
     private @Autowired DocumentService documentService;
-    private @Autowired SearchService searchService;
+    private @Autowired SearchServiceImpl searchService;
 
     private User user;
 
-    @BeforeAll
-    public static void setupClass()
+    static @TempDir Path tempFolder;
+    static SearchServiceImpl _searchService;
+
+    @DynamicPropertySource
+    static void registerDynamicProperties(DynamicPropertyRegistry registry)
     {
-        FileSystemUtils.deleteRecursively(new File(TEST_OUTPUT_FOLDER));
+        registry.add("repository.path", () -> tempFolder.toAbsolutePath().toString());
     }
 
     @BeforeEach
-    public void testWatcher(TestInfo aTestInfo)
+    void testWatcher(TestInfo aTestInfo)
     {
         var methodName = aTestInfo.getTestMethod().map(Method::getName).orElse("<unknown>");
         System.out.printf("\n=== %s === %s=====================\n", methodName,
@@ -160,13 +163,23 @@ public class MtasDocumentIndexTest
     }
 
     @BeforeEach
-    public void setUp()
+    void setUp()
     {
+        _searchService = searchService;
+
         if (!userRepository.exists("admin")) {
             userRepository.create(new User("admin", Role.ROLE_ADMIN));
         }
 
         user = userRepository.get("admin");
+    }
+
+    @AfterAll
+    static void afterAll()
+    {
+        if (_searchService != null) {
+            _searchService.destroy();
+        }
     }
 
     private void createProject(Project aProject) throws Exception
