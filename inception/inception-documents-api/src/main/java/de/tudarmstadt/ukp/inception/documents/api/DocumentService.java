@@ -119,6 +119,8 @@ public interface DocumentService
     List<SourceDocument> listSourceDocumentsInState(Project aProject,
             SourceDocumentState... aStates);
 
+    List<SourceDocument> listSupportedSourceDocuments(Project aProject);
+
     /**
      * ROLE_ADMINs or project admins can remove source documents from a project. removing a a source
      * document also removes an annotation document related to that document
@@ -797,4 +799,6 @@ public interface DocumentService
     boolean isValidDocumentName(String aDocumentName);
 
     List<ValidationError> validateDocumentName(String aName);
+
+    void renameSourceDocument(SourceDocument aDocument, String aNewName);
 }

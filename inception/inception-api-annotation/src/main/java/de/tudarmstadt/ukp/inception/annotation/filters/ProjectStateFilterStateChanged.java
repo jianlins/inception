@@ -15,33 +15,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package de.tudarmstadt.ukp.inception.websocket.controller;
+package de.tudarmstadt.ukp.inception.annotation.filters;
 
-import java.security.Principal;
 import java.util.List;
 
-import org.springframework.context.ApplicationEvent;
+import org.apache.wicket.ajax.AjaxRequestTarget;
+import org.wicketstuff.event.annotation.AbstractAjaxAwareEvent;
 
-import de.tudarmstadt.ukp.inception.websocket.model.LoggedEventMessage;
+import de.tudarmstadt.ukp.clarin.webanno.model.ProjectState;
 
-public interface LoggedEventsWebsocketController
+public class ProjectStateFilterStateChanged
+    extends AbstractAjaxAwareEvent
 {
-    /***
-     * Push messages on received application events to named user
-     * 
-     * @param aEvent
-     *            an event
-     */
-    public void onApplicationEvent(ApplicationEvent aEvent);
+    private final List<ProjectState> selectedStates;
 
-    /**
-     * Return the most recent logged events to the subscribing client
-     * 
-     * @param aPrincipal
-     *            the subscribing client
-     * @return the most recent events
-     */
-    public List<LoggedEventMessage> getMostRecentLoggedEvents(Principal aPrincipal);
+    public ProjectStateFilterStateChanged(AjaxRequestTarget aTarget,
+            List<ProjectState> aSelectedStates)
+    {
+        super(aTarget);
 
-    public String handleException(Throwable exception);
+        selectedStates = aSelectedStates;
+    }
+
+    public List<ProjectState> getSelectedStates()
+    {
+        return selectedStates;
+    }
 }

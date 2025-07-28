@@ -17,8 +17,11 @@
  */
 package de.tudarmstadt.ukp.inception.pdfeditor2.format;
 
+import static org.apache.uima.fit.factory.AnalysisEngineFactory.createEngineDescription;
 import static org.apache.uima.fit.factory.CollectionReaderFactory.createReaderDescription;
 
+import org.apache.uima.analysis_engine.AnalysisEngineDescription;
+import org.apache.uima.cas.CAS;
 import org.apache.uima.collection.CollectionReaderDescription;
 import org.apache.uima.resource.ResourceInitializationException;
 import org.apache.uima.resource.metadata.TypeSystemDescription;
@@ -67,6 +70,12 @@ public class PdfFormatSupport
     }
 
     @Override
+    public boolean isWritable()
+    {
+        return true;
+    }
+
+    @Override
     public CollectionReaderDescription getReaderDescription(Project aProject,
             TypeSystemDescription aTSD)
         throws ResourceInitializationException
@@ -83,5 +92,15 @@ public class PdfFormatSupport
                 VisualPdfReader.PARAM_SPACING_TOLERANCE, properties.getSpacingTolerance(), //
                 VisualPdfReader.PARAM_SUPPRESS_DUPLICATE_OVERLAPPING_TEXT,
                 properties.isSuppressDuplicateOverlappingText());
+    }
+
+    @Override
+    public AnalysisEngineDescription getWriterDescription(Project aProject,
+            TypeSystemDescription aTSD, CAS aCAS)
+        throws ResourceInitializationException
+    {
+        return createEngineDescription( //
+                VisualPdfWriter.class, aTSD, //
+                VisualPdfWriter.PARAM_PROJECT_ID, aProject.getId());
     }
 }
