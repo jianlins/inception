@@ -45,10 +45,6 @@ import org.springframework.context.ApplicationEventPublisher;
 
 import de.tudarmstadt.ukp.clarin.webanno.api.type.CASMetadata;
 import de.tudarmstadt.ukp.clarin.webanno.curation.casdiff.DiffResult;
-import de.tudarmstadt.ukp.clarin.webanno.curation.casdiff.api.Position;
-import de.tudarmstadt.ukp.clarin.webanno.curation.casdiff.docmeta.DocumentPosition;
-import de.tudarmstadt.ukp.clarin.webanno.curation.casdiff.relation.RelationPosition;
-import de.tudarmstadt.ukp.clarin.webanno.curation.casdiff.span.SpanPosition;
 import de.tudarmstadt.ukp.clarin.webanno.model.AnnotationLayer;
 import de.tudarmstadt.ukp.clarin.webanno.model.Project;
 import de.tudarmstadt.ukp.clarin.webanno.model.SourceDocument;
@@ -56,10 +52,13 @@ import de.tudarmstadt.ukp.dkpro.core.api.metadata.type.DocumentMetaData;
 import de.tudarmstadt.ukp.dkpro.core.api.segmentation.type.Sentence;
 import de.tudarmstadt.ukp.dkpro.core.api.segmentation.type.Token;
 import de.tudarmstadt.ukp.inception.annotation.events.BulkAnnotationEvent;
+import de.tudarmstadt.ukp.inception.annotation.layer.document.api.DocumentPosition;
+import de.tudarmstadt.ukp.inception.annotation.layer.relation.api.RelationPosition;
+import de.tudarmstadt.ukp.inception.annotation.layer.span.api.SpanPosition;
 import de.tudarmstadt.ukp.inception.annotation.storage.CasMetadataUtils;
+import de.tudarmstadt.ukp.inception.curation.api.Position;
 import de.tudarmstadt.ukp.inception.curation.merge.strategy.DefaultMergeStrategy;
 import de.tudarmstadt.ukp.inception.curation.merge.strategy.MergeStrategy;
-import de.tudarmstadt.ukp.inception.io.xml.dkprocore.XmlNodeUtils;
 import de.tudarmstadt.ukp.inception.schema.api.AnnotationSchemaService;
 import de.tudarmstadt.ukp.inception.schema.api.adapter.AnnotationException;
 import de.tudarmstadt.ukp.inception.schema.api.adapter.IllegalFeatureValueException;
@@ -540,7 +539,6 @@ public class CasMerge
         aCas.setDocumentText(backup.getDocumentText());
 
         transferSegmentation(aDocument.getProject(), aCas, backup);
-        XmlNodeUtils.transferXmlDocumentStructure(aCas, backup);
     }
 
     /**

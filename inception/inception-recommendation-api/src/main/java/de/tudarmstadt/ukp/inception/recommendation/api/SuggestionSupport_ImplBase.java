@@ -26,7 +26,6 @@ import static de.tudarmstadt.ukp.inception.recommendation.api.model.LearningReco
 import static de.tudarmstadt.ukp.inception.recommendation.api.model.LearningRecordUserAction.SKIPPED;
 
 import org.apache.uima.cas.AnnotationBaseFS;
-import org.apache.uima.cas.CAS;
 import org.apache.uima.cas.Feature;
 import org.apache.uima.cas.FeatureStructure;
 import org.apache.uima.fit.util.FSUtil;
@@ -35,6 +34,7 @@ import org.springframework.context.ApplicationEventPublisher;
 
 import de.tudarmstadt.ukp.clarin.webanno.model.AnnotationFeature;
 import de.tudarmstadt.ukp.clarin.webanno.model.SourceDocument;
+import de.tudarmstadt.ukp.inception.annotation.feature.RecommendableFeatureTrait;
 import de.tudarmstadt.ukp.inception.recommendation.api.event.RecommendationAcceptedEvent;
 import de.tudarmstadt.ukp.inception.recommendation.api.event.RecommendationRejectedEvent;
 import de.tudarmstadt.ukp.inception.recommendation.api.model.AnnotationSuggestion;
@@ -79,14 +79,27 @@ public abstract class SuggestionSupport_ImplBase
         return id;
     }
 
-    protected final void commitLabel(SourceDocument aDocument, String aDataOwner, CAS aCas,
-            TypeAdapter aAdapter, AnnotationFeature aFeature, String aValue,
-            AnnotationBaseFS annotation)
+    protected final void commitLabel(SourceDocument aDocument, String aDataOwner,
+            TypeAdapter aAdapter, AnnotationBaseFS aAnnotation, AnnotationFeature aFeature,
+            AnnotationSuggestion aValue)
         throws AnnotationException
     {
         // Update the feature value
-        aAdapter.pushFeatureValue(aDocument, aDataOwner, aCas, ICasUtil.getAddr(annotation),
-                aFeature, aValue);
+        var address = ICasUtil.getAddr(aAnnotation);
+        aAdapter.pushFeatureValue(aDocument, aDataOwner, aAnnotation.getCAS(), address, aFeature,
+                aValue.getLabel());
+
+        // Update the suggestion information (if enabled)
+        var retainSuggestionInfo = aAdapter
+                .getFeatureTraits(aFeature, RecommendableFeatureTrait.class) //
+                .map(RecommendableFeatureTrait::isRetainSuggestionInfo) //
+                .orElse(false);
+
+        if (retainSuggestionInfo) {
+            var featureSupport = aAdapter.getFeatureSupport(aFeature).get();
+            featureSupport.pushSuggestion(aDocument, aDataOwner, aAnnotation, aFeature,
+                    aValue.getLabel(), aValue.getScore(), aValue.getRecommenderName());
+        }
     }
 
     protected void recordAndPublishAcceptance(String aSessionOwner, SourceDocument aDocument,

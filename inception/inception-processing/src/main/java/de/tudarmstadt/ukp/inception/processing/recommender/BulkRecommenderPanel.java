@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.apache.wicket.ajax.AjaxRequestTarget;
+import org.apache.wicket.extensions.ajax.markup.html.modal.ModalDialog;
 import org.apache.wicket.markup.html.form.CheckBox;
 import org.apache.wicket.markup.html.form.ChoiceRenderer;
 import org.apache.wicket.markup.html.form.DropDownChoice;
@@ -51,6 +52,7 @@ import de.tudarmstadt.ukp.clarin.webanno.model.Project;
 import de.tudarmstadt.ukp.clarin.webanno.security.UserDao;
 import de.tudarmstadt.ukp.clarin.webanno.security.model.User;
 import de.tudarmstadt.ukp.clarin.webanno.security.model.User_;
+import de.tudarmstadt.ukp.inception.annotation.layer.document.api.DocumentMetadataLayerSupport;
 import de.tudarmstadt.ukp.inception.project.api.ProjectService;
 import de.tudarmstadt.ukp.inception.recommendation.api.RecommendationService;
 import de.tudarmstadt.ukp.inception.recommendation.api.model.Recommender;
@@ -61,7 +63,7 @@ import de.tudarmstadt.ukp.inception.schema.api.AnnotationSchemaService;
 import de.tudarmstadt.ukp.inception.schema.api.feature.FeatureSupportRegistry;
 import de.tudarmstadt.ukp.inception.support.lambda.LambdaAjaxButton;
 import de.tudarmstadt.ukp.inception.support.lambda.LambdaAjaxFormComponentUpdatingBehavior;
-import de.tudarmstadt.ukp.inception.ui.core.docanno.layer.DocumentMetadataLayerSupport;
+import de.tudarmstadt.ukp.inception.support.lambda.LambdaAjaxLink;
 
 public class BulkRecommenderPanel
     extends GenericPanel<Project>
@@ -117,10 +119,21 @@ public class BulkRecommenderPanel
                 .setOutputMarkupId(true));
 
         queue(new LambdaAjaxButton<>("startProcessing", this::actionStartProcessing));
+
+        var closeDialogButton = new LambdaAjaxLink("closeDialog", this::actionCancel);
+        closeDialogButton.setOutputMarkupId(true);
+        queue(closeDialogButton);
+    }
+
+    protected void actionCancel(AjaxRequestTarget aTarget)
+    {
+        findParent(ModalDialog.class).close(aTarget);
     }
 
     private void actionStartProcessing(AjaxRequestTarget aTarget, Form<FormData> aForm)
     {
+        findParent(ModalDialog.class).close(aTarget);
+
         var metadata = new HashMap<AnnotationFeature, Serializable>();
         for (var state : processingMetadata.getModelObject()) {
             metadata.put(state.getFeature(), state.getValue());

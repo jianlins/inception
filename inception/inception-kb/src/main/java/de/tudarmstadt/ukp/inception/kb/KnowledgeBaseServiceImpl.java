@@ -401,8 +401,8 @@ public class KnowledgeBaseServiceImpl
         }
     }
 
-    @Transactional
     @Override
+    @Transactional(readOnly = true)
     public boolean knowledgeBaseExists(Project project, String kbName)
     {
         var query = entityManager.createNamedQuery("KnowledgeBase.getByName");
@@ -489,6 +489,17 @@ public class KnowledgeBaseServiceImpl
                 KnowledgeBase.class);
         query.setParameter("project", aProject);
         return query.getResultList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean hasMoreThanOneEnabledKnowledgeBases(Project aProject)
+    {
+        var countQuery = entityManager.createQuery(
+                "SELECT COUNT(kb) FROM KnowledgeBase kb WHERE kb.project = :project AND kb.enabled = true",
+                Long.class);
+        countQuery.setParameter("project", aProject);
+        return countQuery.getSingleResult() > 1;
     }
 
     @Transactional

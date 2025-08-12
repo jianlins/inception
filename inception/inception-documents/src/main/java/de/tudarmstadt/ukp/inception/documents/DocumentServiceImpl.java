@@ -242,7 +242,7 @@ public class DocumentServiceImpl
     }
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public boolean existsAnnotationDocument(SourceDocument aDocument, User aUser)
     {
         Validate.notNull(aUser, "User must be specified");
@@ -251,7 +251,7 @@ public class DocumentServiceImpl
     }
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public boolean existsAnnotationDocument(SourceDocument aDocument, String aUsername)
     {
         Validate.notNull(aDocument, "Source document must be specified");
@@ -314,7 +314,7 @@ public class DocumentServiceImpl
     }
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public boolean existsSourceDocument(Project aProject)
     {
         Validate.notNull(aProject, "Project must be specified");
@@ -330,7 +330,7 @@ public class DocumentServiceImpl
     }
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public boolean existsSourceDocument(Project aProject, String aFileName)
     {
         Validate.notNull(aProject, "Project must be specified");
@@ -549,7 +549,7 @@ public class DocumentServiceImpl
     }
 
     @Override
-    @Transactional(noRollbackFor = NoResultException.class)
+    @Transactional(noRollbackFor = NoResultException.class, readOnly = true)
     public boolean existsFinishedAnnotation(SourceDocument aDocument)
     {
         Validate.notNull(aDocument, "Source document must be specified");
@@ -568,7 +568,7 @@ public class DocumentServiceImpl
     }
 
     @Override
-    @Transactional(noRollbackFor = NoResultException.class)
+    @Transactional(noRollbackFor = NoResultException.class, readOnly = true)
     public boolean existsFinishedAnnotation(Project aProject)
     {
         Validate.notNull(aProject, "Project must be specified");
@@ -957,8 +957,17 @@ public class DocumentServiceImpl
         // If there is no CAS yet for the source document, create one.
         CAS cas = casStorageService.readOrCreateCas(aDocument, aUserName, aUpgradeMode,
                 // Convert the source file into an annotation CAS
-                () -> createOrReadInitialCas(aDocument, NO_CAS_UPGRADE, UNMANAGED_ACCESS, null),
-                aMode);
+                () -> {
+                    var initialCas = createOrReadInitialCas(aDocument, NO_CAS_UPGRADE,
+                            UNMANAGED_ACCESS, null);
+
+                    var maybeFormatSupport = importExportService
+                            .getFormatById(aDocument.getFormat());
+                    maybeFormatSupport
+                            .ifPresent(fmt -> fmt.prepareAnnotationCas(initialCas, aDocument));
+
+                    return initialCas;
+                }, aMode);
 
         // We intentionally do not upgrade the CAS here because in general the IDs
         // must remain stable. If an upgrade is required the caller should do it
@@ -1164,14 +1173,14 @@ public class DocumentServiceImpl
     }
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public boolean isAnnotationFinished(SourceDocument aDocument, User aUser)
     {
         return isAnnotationFinished(aDocument, aUser.getUsername());
     }
 
     @Override
-    @Transactional(noRollbackFor = NoResultException.class)
+    @Transactional(noRollbackFor = NoResultException.class, readOnly = true)
     public boolean isAnnotationFinished(SourceDocument aDocument, String aUsername)
     {
         var query = String.join("\n", //
@@ -1408,7 +1417,7 @@ public class DocumentServiceImpl
     }
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public boolean existsCurationDocument(Project aProject)
     {
         Validate.notNull(aProject, "Project must be specified");
@@ -1552,18 +1561,18 @@ public class DocumentServiceImpl
     }
 
     @Override
-    @Transactional(noRollbackFor = NoResultException.class)
+    @Transactional(noRollbackFor = NoResultException.class, readOnly = true)
     public long countSourceDocuments()
     {
-        String query = "SELECT COUNT(*) FROM SourceDocument";
+        var query = "SELECT COUNT(*) FROM SourceDocument";
         return entityManager.createQuery(query, Long.class).getSingleResult();
     }
 
     @Override
-    @Transactional(noRollbackFor = NoResultException.class)
+    @Transactional(noRollbackFor = NoResultException.class, readOnly = true)
     public long countAnnotationDocuments()
     {
-        String query = "SELECT COUNT(*) FROM AnnotationDocument";
+        var query = "SELECT COUNT(*) FROM AnnotationDocument";
         return entityManager.createQuery(query, Long.class).getSingleResult();
     }
 

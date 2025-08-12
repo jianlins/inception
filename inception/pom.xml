@@ -47,13 +47,6 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
-      <dependency>
-        <groupId>de.tudarmstadt.ukp.inception.app</groupId>
-        <artifactId>inception-bom</artifactId>
-        <version>38.0-SNAPSHOT</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
     </dependencies>
   </dependencyManagement>
 
@@ -187,6 +180,7 @@
     <module>inception-security</module>
     <module>inception-telemetry</module>
     <module>inception-ui-core</module>
+    <module>inception-undo</module>
     <module>inception-log</module>
     <module>inception-scheduling</module>
     <module>inception-js-api</module>
@@ -199,9 +193,11 @@
     <module>inception-api-editor</module>
     <module>inception-api-render</module>
     <module>inception-schema-api</module>
+    <module>inception-schema-analyzer</module>
     <module>inception-export</module>
     <module>inception-export-api</module>
     <module>inception-diag</module>
+    <module>inception-diag-api</module>
     <module>inception-tutorial</module>
     <module>inception-testing</module>
     <module>inception-agreement</module>
@@ -238,6 +234,7 @@
     <module>inception-io-xmi</module>
     <module>inception-io-xml</module>
     <!-- Curation -->
+    <module>inception-curation-api</module>
     <module>inception-curation</module>
     <module>inception-curation-legacy</module>
     <module>inception-ui-curation</module>
@@ -272,8 +269,20 @@
     <module>inception-pdf-editor2</module>
     <module>inception-review-editor</module>
     <!-- Schema extensions -->
+    <module>inception-layer-behavior</module>
+    <module>inception-layer-chain</module>
+    <module>inception-layer-chain-api</module>
     <module>inception-layer-docmetadata</module>
+    <module>inception-layer-docmetadata-api</module>
+    <module>inception-layer-relation</module>
+    <module>inception-layer-relation-api</module>
+    <module>inception-layer-span</module>
+    <module>inception-layer-span-api</module>
+    <module>inception-feature-bool</module>
+    <module>inception-feature-link</module>
     <module>inception-feature-lookup</module>
+    <module>inception-feature-number</module>
+    <module>inception-feature-string</module>
     <module>inception-image</module>
     <!-- Recommender system -->
     <module>inception-recommendation-api</module>
@@ -807,10 +816,12 @@
               <typeSystemIncludes>
                 <include>src/main/resources/desc/type/**/*.xml</include>
                 <include>src/main/resources/de/tudarmstadt/ukp/clarin/webanno/**/type/**/*.xml</include>
+                <include>src/main/resources/de/tudarmstadt/ukp/inception/**/type/**/*.xml</include>
               </typeSystemIncludes>
               <typeSystemExcludes>
                 <exclude>src/main/resources/desc/type/**/*_customized.xml</exclude>
                 <exclude>src/main/resources/de/tudarmstadt/ukp/clarin/webanno/**/type/**/*_customized.xml</exclude>
+                <exclude>src/main/resources/de/tudarmstadt/ukp/inception/**/type/**/*_customized.xml</exclude>
               </typeSystemExcludes>
             </configuration>
             <executions>
