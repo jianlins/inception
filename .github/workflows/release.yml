@@ -1,0 +1,156 @@
+name: Release
+
+on:
+  push:
+    branches: [ "main", "release/**" ]
+  pull_request:
+    branches: [ "main", "release/**" ]
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Create release'
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  checks: write
+
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        jdk: [17]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf # v2.12.0
+        with:
+          # egress-policy: audit
+          egress-policy: block
+          disable-sudo: true
+          allowed-endpoints: >
+            api.github.com:443
+            archive.ics.uci.edu:80
+            auth.docker.io:443
+            build.shibboleth.net:443
+            centralus.data.mcr.microsoft.com:443
+            download.eclipse.org:443
+            eastus.data.mcr.microsoft.com:443
+            github.com:443
+            mcr.microsoft.com:443
+            nodejs.org:443
+            oss.sonatype.org:443
+            production.cloudflare.docker.com:443
+            registry-1.docker.io:443
+            registry.npmjs.org:443
+            repo.maven.apache.org:443
+            repo.spring.io:443
+            repo1.maven.org:443
+            westus.data.mcr.microsoft.com:443
+            westus2.data.mcr.microsoft.com:443
+            www.ims.uni-stuttgart.de:443
+            zoidberg.ukp.informatik.tu-darmstadt.de:443
+
+      - name: Checkout repository
+        uses: actions/checkout@v4 # v4.2.2
+        with:
+          ref: ${{ github.head_ref || github.ref }}
+
+      - name: Set up JDK ${{ matrix.jdk }}
+        uses: actions/setup-java@v4 # v4.7.1
+        with:
+          java-version: ${{ matrix.jdk }}
+          distribution: 'temurin'
+          cache: maven
+          server-id: ukp-oss-snapshots
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
+
+      - name: Set up Maven
+        uses: stCarolas/setup-maven@v5 # v5
+        with:
+          maven-version: 3.9.9
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4 # v4.2.3
+        with:
+          path: /var/lib/docker
+          key: docker-cache-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            docker-cache-${{ runner.os }}-
+
+      - name: Cache DKPro Core Dataset Cache
+        uses: actions/cache@v4 # v4.2.3
+        with:
+          path: cache
+          key: dkpro-dataset-cache-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            dkpro-dataset-cache-${{ runner.os }}-
+
+      - name: Cache Nodejs
+        uses: actions/cache@v4 # v4.2.3
+        with:
+          path: nodejs
+          key: nodejs-cache-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            nodejs-cache-${{ runner.os }}-
+
+      - name: Build with Maven (full verification)
+        if: matrix.os != 'ubuntu-latest' || github.event_name == 'pull_request'
+        run: mvn --show-version --batch-mode --no-transfer-progress clean verify
+
+      - name: Build with Maven (skip tests)
+        if: matrix.os == 'ubuntu-latest' && github.event_name != 'pull_request'
+        run: mvn --show-version --batch-mode --no-transfer-progress clean package -DskipTests
+
+      - name: Publish Test Report
+        uses: mikepenz/action-junit-report@v5 # v5.5.1
+        if: success() || failure() # always run even if the previous step fails
+        with:
+          report_paths: '**/target/surefire-reports/TEST-*.xml'
+
+      - name: Get project version from POM
+        id: get_version
+        if: |
+          matrix.os == 'ubuntu-latest' && (
+            (github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true') ||
+            (startsWith(github.ref, 'refs/heads/release/') && github.event.inputs.create_release == 'true')
+          )
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+          echo "Retrieved version: $VERSION, commit: $SHORT_SHA"
+
+      - name: Create Release and Upload Asset
+        if: |
+          matrix.os == 'ubuntu-latest' && (
+            (github.event_name == 'workflow_dispatch' && github.event.inputs.create_release == 'true') ||
+            (startsWith(github.ref, 'refs/heads/release/') && github.event.inputs.create_release == 'true')
+          )
+        uses: ncipollo/release-action@v1 # v1.14.0
+        with:
+          tag: v${{ steps.get_version.outputs.version }}-${{ steps.get_version.outputs.short_sha }}
+          name: Release v${{ steps.get_version.outputs.version }} (${{ steps.get_version.outputs.short_sha }})
+          artifacts: "./inception/inception-app-webapp/target/inception-app-webapp-${{ steps.get_version.outputs.version }}-standalone.jar"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          draft: false
+          prerelease: false
+
+      - name: Capture build artifacts
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4 # v4.6.2
+        with:
+          name: build-artifacts
+          path: inception/inception-app-webapp/target/inception-app-webapp-*-standalone.jar
