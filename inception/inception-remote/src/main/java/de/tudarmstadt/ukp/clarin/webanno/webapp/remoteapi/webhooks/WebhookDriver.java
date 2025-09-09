@@ -15,30 +15,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package de.tudarmstadt.ukp.inception.pivot.extractor;
+package de.tudarmstadt.ukp.clarin.webanno.webapp.remoteapi.webhooks;
 
-import de.tudarmstadt.ukp.clarin.webanno.model.AnnotationLayer;
-import de.tudarmstadt.ukp.inception.pivot.api.extractor.Extractor;
-import de.tudarmstadt.ukp.inception.pivot.api.extractor.LayerExtractorSupport;
+import java.io.IOException;
 
-public class TypeExtractorSupport
-    implements LayerExtractorSupport
+public interface WebhookDriver
 {
-    @Override
-    public String renderName(AnnotationLayer aLayer)
-    {
-        return (aLayer != null ? aLayer.getUiName() : "*") + " :: <type>";
-    }
+    String X_AERO_NOTIFICATION = "X-AERO-Notification";
+    String X_AERO_SIGNATURE = "X-AERO-Signature";
 
-    @Override
-    public boolean accepts(AnnotationLayer aContext)
-    {
-        return true;
-    }
+    String getId();
 
-    @Override
-    public Extractor<?, ?> createExtractor(AnnotationLayer aLayer)
-    {
-        return new TypeExtractor(aLayer);
-    }
+    void sendNotification(String aTopic, Object aMessage, Webhook aHook)
+        throws IOException, InterruptedException;
 }
